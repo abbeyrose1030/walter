@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import { isTeacherAuthorized } from "@/lib/auth";
+import {
+  blobNotConfiguredMessage,
+  isBlobStorageConfigured,
+} from "@/lib/blob-storage";
 import { appendVideo, readVideosIndex } from "@/lib/videos";
+
+export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
   const videos = await readVideosIndex();
@@ -19,9 +25,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  if (!isBlobStorageConfigured()) {
     return NextResponse.json(
-      { error: "Storage not configured (BLOB_READ_WRITE_TOKEN)" },
+      { error: blobNotConfiguredMessage() },
       { status: 503 },
     );
   }
@@ -40,23 +46,35 @@ export async function POST(request: NextRequest) {
   }
 
   const id = crypto.randomUUID();
-  const pathname = `videos/${id}.webm`;
+  const ext = file.type.includes("mp4") ? "mp4" : "webm";
+  const pathname = `videos/${id}.${ext}`;
 
-  const blob = await put(pathname, file, {
-    access: "public",
-    addRandomSuffix: false,
-    contentType: file.type || "video/webm",
-  });
+  try {
+    const blob = await put(pathname, file, {
+      access: "public",
+      addRandomSuffix: false,
+      contentType: file.type || "video/webm",
+    });
 
-  const entry = {
-    id,
-    songId,
-    songTitle,
-    studentName,
-    url: blob.url,
-    uploadedAt: new Date().toISOString(),
-  };
+    const entry = {
+      id,
+      songId,
+      songTitle,
+      studentName,
+      url: blob.url,
+      uploadedAt: new Date().toISOString(),
+    };
 
-  await appendVideo(entry);
-  return NextResponse.json({ video: entry });
+    await appendVideo(entry);
+    return NextResponse.json({ video: entry });
+  } catch (err) {
+    console.error("Video upload failed:", err);
+    return NextResponse.json(
+      {
+        error:
+          "Upload failed. In Vercel → Storage → Blob, connect the store to walter, then Redeploy.",
+      },
+      { status: 503 },
+    );
+  }
 }

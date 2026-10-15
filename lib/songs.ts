@@ -1,4 +1,5 @@
 import { list, put, del } from "@vercel/blob";
+import { isBlobStorageConfigured } from "@/lib/blob-storage";
 
 export type Song = {
   id: string;
@@ -26,7 +27,7 @@ function mergeBundledSongs(fromBlob: Song[]): Song[] {
 }
 
 export async function readSongsIndex(): Promise<Song[]> {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  if (!isBlobStorageConfigured()) {
     return [...BUNDLED_SONGS];
   }
 

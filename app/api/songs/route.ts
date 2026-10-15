@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isTeacherAuthorized } from "@/lib/auth";
+import {
+  blobNotConfiguredMessage,
+  isBlobStorageConfigured,
+} from "@/lib/blob-storage";
 import { addSong, deleteSong, readSongsIndex } from "@/lib/songs";
+
+export const runtime = "nodejs";
 
 export async function GET() {
   const songs = await readSongsIndex();
@@ -23,9 +29,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  if (!isBlobStorageConfigured()) {
     return NextResponse.json(
-      { error: "Storage not configured (BLOB_READ_WRITE_TOKEN)" },
+      { error: blobNotConfiguredMessage() },
       { status: 503 },
     );
   }
