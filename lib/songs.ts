@@ -9,17 +9,37 @@ export type Song = {
 
 const SONGS_INDEX = "songs/index.json";
 
+/** Shipped with the app so Ava can practice before Blob uploads are set up. */
+export const BUNDLED_SONGS: Song[] = [
+  {
+    id: "full-practice-track",
+    title: "Full Practice Track",
+    url: "/tracks/full-practice-track.mp3",
+    uploadedAt: "2026-10-15T00:00:00.000Z",
+  },
+];
+
+function mergeBundledSongs(fromBlob: Song[]): Song[] {
+  const ids = new Set(fromBlob.map((s) => s.id));
+  const bundled = BUNDLED_SONGS.filter((s) => !ids.has(s.id));
+  return [...fromBlob, ...bundled];
+}
+
 export async function readSongsIndex(): Promise<Song[]> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return [...BUNDLED_SONGS];
+  }
+
   try {
     const blobs = await list({ prefix: SONGS_INDEX, limit: 1 });
     const indexBlob = blobs.blobs.find((b) => b.pathname === SONGS_INDEX);
-    if (!indexBlob) return [];
+    if (!indexBlob) return mergeBundledSongs([]);
 
     const res = await fetch(indexBlob.url, { cache: "no-store" });
-    if (!res.ok) return [];
-    return (await res.json()) as Song[];
+    if (!res.ok) return mergeBundledSongs([]);
+    return mergeBundledSongs((await res.json()) as Song[]);
   } catch {
-    return [];
+    return mergeBundledSongs([]);
   }
 }
 
@@ -56,7 +76,11 @@ export async function addSong(title: string, file: File): Promise<Song> {
 }
 
 export async function deleteSong(id: string): Promise<boolean> {
-  const songs = await readSongsIndex();
+  if (BUNDLED_SONGS.some((s) => s.id === id)) return false;
+
+  const songs = (await readSongsIndex()).filter(
+    (s) => !BUNDLED_SONGS.some((b) => b.id === s.id),
+  );
   const idx = songs.findIndex((s) => s.id === id);
   if (idx === -1) return false;
 
