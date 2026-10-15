@@ -1,6 +1,6 @@
 "use client";
 
-import { upload } from "@vercel/blob/client";
+import { uploadPresigned } from "@vercel/blob/client";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BackingAudioPlayer } from "@/lib/backing-audio";
@@ -108,7 +108,7 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
       const id = crypto.randomUUID();
       const file = new File([blob], `ava-practice.${ext}`, { type: mimeType });
 
-      const uploaded = await upload(`videos/${id}.${ext}`, file, {
+      const uploaded = await uploadPresigned(`videos/${id}.${ext}`, file, {
         access: "public",
         handleUploadUrl: "/api/videos/upload",
         clientPayload: JSON.stringify({

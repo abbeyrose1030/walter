@@ -1,4 +1,4 @@
-/** Vercel Blob: static token and/or OIDC (BLOB_STORE_ID + VERCEL_OIDC_TOKEN on deploy). */
+/** Vercel Blob: read-write token and/or OIDC (BLOB_STORE_ID on deploy). */
 export function isBlobStorageConfigured(): boolean {
   if (process.env.BLOB_READ_WRITE_TOKEN?.trim()) return true;
   if (process.env.BLOB_STORE_ID?.trim()) return true;

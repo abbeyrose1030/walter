@@ -1,6 +1,6 @@
 "use client";
 
-import { upload } from "@vercel/blob/client";
+import { uploadPresigned } from "@vercel/blob/client";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { INSTRUCTOR_NAME } from "@/lib/branding";
 import { readApiError } from "@/lib/read-api-error";
@@ -107,7 +107,7 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
     const pathname = `songs/${id}.${ext}`;
 
     try {
-      const blob = await upload(pathname, file, {
+      const blob = await uploadPresigned(pathname, file, {
         access: "public",
         handleUploadUrl: "/api/songs/upload",
         headers: authHeaders() as Record<string, string>,
