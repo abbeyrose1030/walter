@@ -43,6 +43,6 @@ npm run dev
 
 ## Teacher workflow
 
-1. Go to `/teacher` and enter the teacher password (**default:** `WalterPractice2026`).
+1. Go to `/teacher` and enter the teacher password (**default:** set in `lib/auth.ts`; override with `TEACHER_PASSWORD` in Vercel).
 2. Upload MP3/M4A practice tracks.
 3. Review uploaded practice videos on the same page.

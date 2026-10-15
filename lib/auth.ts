@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 
 /** Override anytime with TEACHER_PASSWORD in Vercel env. */
-export const DEFAULT_TEACHER_PASSWORD = "WalterPractice2026";
+export const DEFAULT_TEACHER_PASSWORD = "relientk1030";
 
 export function getTeacherPassword(): string {
   return process.env.TEACHER_PASSWORD?.trim() || DEFAULT_TEACHER_PASSWORD;
