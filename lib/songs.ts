@@ -69,7 +69,9 @@ export async function addSong(title: string, file: File): Promise<Song> {
     uploadedAt: new Date().toISOString(),
   };
 
-  const songs = await readSongsIndex();
+  const songs = (await readSongsIndex()).filter(
+    (s) => !BUNDLED_SONGS.some((b) => b.id === s.id),
+  );
   songs.unshift(song);
   await writeSongsIndex(songs);
   return song;
