@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fredoka } from "next/font/google";
+import { WalterAppChrome } from "@/components/WalterAppChrome";
 import "./globals.css";
 
 const fredoka = Fredoka({
@@ -41,7 +42,9 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body className={`${fredoka.className} antialiased`}>{children}</body>
+      <body className={`${fredoka.className} antialiased`}>
+        <WalterAppChrome>{children}</WalterAppChrome>
+      </body>
     </html>
   );
 }

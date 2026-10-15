@@ -6,9 +6,5 @@ export default async function TeacherPage({
   searchParams: Promise<{ key?: string }>;
 }) {
   const { key } = await searchParams;
-  return (
-    <main>
-      <TeacherDashboard initialKey={key ?? ""} />
-    </main>
-  );
+  return <TeacherDashboard initialKey={key ?? ""} />;
 }

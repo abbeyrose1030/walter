@@ -41,9 +41,6 @@ export default async function HomePage() {
       <p className="mt-10 text-center text-xs opacity-50">
         Add WALTER to your Home Screen from Safari&apos;s Share menu.
       </p>
-      <p className="mt-2 text-center text-xs opacity-30">
-        <a href="/teacher">Teacher</a>
-      </p>
     </main>
   );
 }

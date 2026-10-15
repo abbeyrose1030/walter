@@ -49,11 +49,31 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
     void load();
   }, [load, storedKey]);
 
-  const unlock = (e: FormEvent) => {
+  const unlock = async (e: FormEvent) => {
     e.preventDefault();
-    sessionStorage.setItem("walter-teacher-key", key);
-    setStoredKey(key);
     setStatus("");
+    try {
+      const res = await fetch("/api/teacher/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: key }),
+      });
+      if (!res.ok) {
+        setStatus("Wrong password — try again.");
+        return;
+      }
+      sessionStorage.setItem("walter-teacher-key", key);
+      setStoredKey(key);
+    } catch {
+      setStatus("Could not check password. Try again.");
+    }
+  };
+
+  const signOut = () => {
+    sessionStorage.removeItem("walter-teacher-key");
+    setStoredKey("");
+    setVideos([]);
+    setKey("");
   };
 
   const uploadSong = async (e: FormEvent<HTMLFormElement>) => {
@@ -98,12 +118,17 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
   const teacherUnlocked = Boolean(storedKey);
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
-      <h1 className="mb-2 text-3xl font-bold text-[var(--walter-grape)]">Teacher</h1>
-      <p className="mb-6 text-sm opacity-80">Upload songs & watch Ava&apos;s practice videos.</p>
+    <div className="mx-auto max-w-lg px-4 py-8">
+      <div className="mb-6 text-center">
+        <p className="text-3xl font-bold text-[var(--walter-grape)]">Teacher</p>
+        <p className="mt-1 text-sm opacity-80">Upload songs & watch Ava&apos;s videos.</p>
+      </div>
 
       {!teacherUnlocked ? (
-        <form onSubmit={unlock} className="mb-8 rounded-2xl bg-white p-5 shadow-sm">
+        <form
+          onSubmit={(e) => void unlock(e)}
+          className="mb-8 rounded-2xl bg-white p-5 shadow-sm"
+        >
           <label className="mb-2 block text-sm font-semibold">Teacher password</label>
           <input
             type="password"
@@ -120,6 +145,18 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
           </button>
         </form>
       ) : (
+        <div className="mb-4 flex justify-end">
+          <button
+            type="button"
+            onClick={signOut}
+            className="text-sm font-semibold text-[var(--walter-coral)]"
+          >
+            Lock teacher tab
+          </button>
+        </div>
+      )}
+
+      {teacherUnlocked && (
         <form onSubmit={uploadSong} className="mb-8 rounded-2xl bg-white p-5 shadow-sm">
           <h2 className="mb-3 font-bold">Add a practice song</h2>
           <input
