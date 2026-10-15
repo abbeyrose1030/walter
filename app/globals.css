@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+:root {
+  --walter-sun: #ffe566;
+  --walter-coral: #ff6b6b;
+  --walter-sky: #4ecdc4;
+  --walter-grape: #a78bfa;
+  --walter-cream: #fff9eb;
+  --walter-ink: #2d3436;
+}
+
+body {
+  background: var(--walter-cream);
+  color: var(--walter-ink);
+  min-height: 100dvh;
+}
+
+@keyframes walter-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.walter-bounce {
+  animation: walter-bounce 2s ease-in-out infinite;
+}
