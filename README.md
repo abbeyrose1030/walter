@@ -25,7 +25,7 @@ npm run dev
 ```
 
 - Ava: [http://localhost:3000](http://localhost:3000)
-- Teacher: [http://localhost:3000/teacher](http://localhost:3000/teacher)
+- Abbey: [http://localhost:3000/teacher](http://localhost:3000/teacher)
 
 ## iPad (Ava)
 

@@ -19,7 +19,7 @@ export default async function HomePage() {
         <div className="rounded-3xl border-2 border-dashed border-[var(--walter-sky)] bg-white p-8 text-center">
           <p className="text-lg font-semibold">No songs yet</p>
           <p className="mt-2 text-sm opacity-80">
-            Your teacher will add practice tracks here.
+            Abbey will add practice tracks here.
           </p>
         </div>
       ) : (
