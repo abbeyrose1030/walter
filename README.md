@@ -13,15 +13,14 @@ Bright, simple practice app for Ava: play backing tracks, record front-camera vi
 1. Push this folder to **GitHub**.
 2. Import the repo in **Vercel**.
 3. Add a **Blob** store to the project (Vercel will set `BLOB_READ_WRITE_TOKEN`).
-4. (Optional) Set **`TEACHER_PASSWORD`** in Vercel to change the teacher login. If you skip this, use the default password in the README below.
-5. Deploy.
+4. Deploy.
 
 ## Local dev
 
 ```bash
 npm install
 cp .env.example .env.local
-# fill in BLOB_READ_WRITE_TOKEN and TEACHER_PASSWORD
+# fill in BLOB_READ_WRITE_TOKEN if testing uploads locally
 npm run dev
 ```
 
@@ -43,6 +42,6 @@ npm run dev
 
 ## Teacher workflow
 
-1. Go to `/teacher` and enter the teacher password (**default:** set in `lib/auth.ts`; override with `TEACHER_PASSWORD` in Vercel).
+1. Go to **Teacher** tab and enter the password from `lib/auth.ts` (`DEFAULT_TEACHER_PASSWORD`).
 2. Upload MP3/M4A practice tracks.
 3. Review uploaded practice videos on the same page.

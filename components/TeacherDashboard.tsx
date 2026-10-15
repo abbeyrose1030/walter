@@ -58,8 +58,13 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: key }),
       });
-      if (!res.ok) {
+      if (res.status === 401) {
         setStatus("Wrong password — try again.");
+        return;
+      }
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        setStatus(data.error || "Could not sign in. Refresh and try again.");
         return;
       }
       sessionStorage.setItem("walter-teacher-key", key);
@@ -136,6 +141,9 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
             onChange={(e) => setKey(e.target.value)}
             className="mb-3 w-full rounded-xl border-2 border-[var(--walter-sun)] px-3 py-2"
             autoComplete="current-password"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
           />
           <button
             type="submit"
