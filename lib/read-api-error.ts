@@ -8,7 +8,8 @@ export async function readApiError(
 
   const text = await res.text();
   if (!text.trim()) {
-    if (res.status === 401) return "Wrong teacher password — lock and unlock again.";
+    if (res.status === 401)
+      return "Wrong password — lock and unlock again.";
     if (res.status >= 500) return "Server error — wait a moment and try again.";
     return fallback;
   }

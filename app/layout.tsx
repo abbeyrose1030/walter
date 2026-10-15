@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fredoka } from "next/font/google";
 import { WalterAppChrome } from "@/components/WalterAppChrome";
+import { INSTRUCTOR_NAME } from "@/lib/branding";
 import "./globals.css";
 
 const fredoka = Fredoka({
@@ -11,7 +12,7 @@ const fredoka = Fredoka({
 
 export const metadata: Metadata = {
   title: "WALTER",
-  description: "Practice guitar with WALTER — play along and record for your teacher!",
+  description: `Practice guitar with WALTER — play along and record for ${INSTRUCTOR_NAME}!`,
   applicationName: "WALTER",
   appleWebApp: {
     capable: true,

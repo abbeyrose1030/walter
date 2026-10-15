@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { INSTRUCTOR_NAME } from "@/lib/branding";
 
 const TAB_BAR_HEIGHT = "4.25rem";
 
@@ -48,7 +49,7 @@ export function WalterAppChrome({ children }: { children: React.ReactNode }) {
             }`}
             aria-current={teacherActive ? "page" : undefined}
           >
-            🔒 Teacher
+            🔒 {INSTRUCTOR_NAME}
           </Link>
         </div>
       </nav>

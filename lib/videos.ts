@@ -38,3 +38,10 @@ export async function appendVideo(entry: PracticeVideo): Promise<void> {
     contentType: "application/json",
   });
 }
+
+export async function registerPracticeVideo(
+  entry: PracticeVideo,
+): Promise<PracticeVideo> {
+  await appendVideo(entry);
+  return entry;
+}

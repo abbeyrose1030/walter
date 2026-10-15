@@ -2,6 +2,7 @@
 
 import { upload } from "@vercel/blob/client";
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import { INSTRUCTOR_NAME } from "@/lib/branding";
 import { readApiError } from "@/lib/read-api-error";
 
 type Song = { id: string; title: string; uploadedAt: string };
@@ -86,7 +87,7 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
   const uploadSong = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!storedKey) {
-      setStatus("Enter your teacher password first.");
+      setStatus(`Enter your ${INSTRUCTOR_NAME} password first.`);
       return;
     }
     setUploading(true);
@@ -153,7 +154,7 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
       <div className="mb-6 text-center">
-        <p className="text-3xl font-bold text-[var(--walter-grape)]">Teacher</p>
+        <p className="text-3xl font-bold text-[var(--walter-grape)]">{INSTRUCTOR_NAME}</p>
         <p className="mt-1 text-sm opacity-80">Upload songs & watch Ava&apos;s videos.</p>
       </div>
 
@@ -162,7 +163,7 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
           onSubmit={(e) => void unlock(e)}
           className="mb-8 rounded-2xl bg-white p-5 shadow-sm"
         >
-          <label className="mb-2 block text-sm font-semibold">Teacher password</label>
+          <label className="mb-2 block text-sm font-semibold">{INSTRUCTOR_NAME} password</label>
           <input
             type="password"
             value={key}
@@ -187,7 +188,7 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
             onClick={signOut}
             className="text-sm font-semibold text-[var(--walter-coral)]"
           >
-            Lock teacher tab
+            Lock {INSTRUCTOR_NAME} tab
           </button>
         </div>
       )}

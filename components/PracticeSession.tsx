@@ -1,8 +1,11 @@
 "use client";
 
+import { upload } from "@vercel/blob/client";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BackingAudioPlayer } from "@/lib/backing-audio";
+import { INSTRUCTOR_NAME } from "@/lib/branding";
+import { readApiError } from "@/lib/read-api-error";
 import { PracticeRecorder } from "@/lib/recorder";
 
 type Props = {
@@ -31,7 +34,9 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
       try {
         await player.loadFromUrl(trackUrl);
       } catch {
-        setMessage("Could not load the song. Ask your teacher to check the upload.");
+        setMessage(
+          `Could not load the song. Ask ${INSTRUCTOR_NAME} to check the upload.`,
+        );
         setPhase("error");
       } finally {
         setLoadingTrack(false);
@@ -100,16 +105,35 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
       recorderRef.current = null;
 
       const ext = mimeType.includes("mp4") ? "mp4" : "webm";
-      const form = new FormData();
-      form.append("video", blob, `ava-practice.${ext}`);
-      form.append("songId", songId);
-      form.append("songTitle", songTitle);
-      form.append("studentName", "Ava");
+      const id = crypto.randomUUID();
+      const file = new File([blob], `ava-practice.${ext}`, { type: mimeType });
 
-      const res = await fetch("/api/videos", { method: "POST", body: form });
+      const uploaded = await upload(`videos/${id}.${ext}`, file, {
+        access: "public",
+        handleUploadUrl: "/api/videos/upload",
+        clientPayload: JSON.stringify({
+          songId,
+          songTitle,
+          studentName: "Ava",
+        }),
+        multipart: file.size > 4 * 1024 * 1024,
+        contentType: mimeType,
+      });
+
+      const res = await fetch("/api/videos/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          songId,
+          songTitle,
+          studentName: "Ava",
+          url: uploaded.url,
+        }),
+      });
+
       if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(data.error || "Upload failed");
+        throw new Error(await readApiError(res, "Upload failed"));
       }
       setPhase("done");
     } catch (err) {
@@ -191,7 +215,7 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
             onClick={() => void stopAndUpload()}
             className="rounded-2xl bg-[var(--walter-coral)] px-6 py-5 text-xl font-bold text-white shadow-md active:scale-[0.98]"
           >
-            Done! Send to teacher ✨
+            Done! Send to {INSTRUCTOR_NAME} ✨
           </button>
         )}
 
@@ -212,7 +236,7 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
         {phase === "done" && (
           <div className="flex flex-col gap-3">
             <p className="text-center text-xl font-bold text-[var(--walter-grape)]">
-              Nice! Your teacher can watch it now. 🌟
+              Nice! {INSTRUCTOR_NAME} can watch it now. 🌟
             </p>
             <Link
               href="/"
