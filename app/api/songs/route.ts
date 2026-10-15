@@ -36,8 +36,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const song = await addSong(title, file);
-  return NextResponse.json({ song });
+  try {
+    const song = await addSong(title, file);
+    return NextResponse.json({ song });
+  } catch (err) {
+    console.error("Song upload failed:", err);
+    return NextResponse.json(
+      { error: "Upload failed. Try again or use a smaller MP3." },
+      { status: 500 },
+    );
+  }
 }
 
 export async function DELETE(request: NextRequest) {

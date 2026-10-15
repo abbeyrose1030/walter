@@ -1,6 +1,8 @@
 "use client";
 
+import { upload } from "@vercel/blob/client";
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import { readApiError } from "@/lib/read-api-error";
 
 type Song = { id: string; title: string; uploadedAt: string };
 type Video = {
@@ -88,18 +90,44 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
       return;
     }
     setUploading(true);
-    setStatus("");
+    setStatus("Uploading…");
     const form = new FormData(e.currentTarget);
+    const title = String(form.get("title") || "").trim();
+    const file = form.get("file");
+
+    if (!title || !(file instanceof File)) {
+      setStatus("Add a song name and pick an audio file.");
+      setUploading(false);
+      return;
+    }
+
+    const id = crypto.randomUUID();
+    const ext = file.name.split(".").pop()?.toLowerCase() || "mp3";
+    const pathname = `songs/${id}.${ext}`;
+
     try {
-      const res = await fetch("/api/songs", {
-        method: "POST",
-        headers: authHeaders(),
-        body: form,
+      const blob = await upload(pathname, file, {
+        access: "public",
+        handleUploadUrl: "/api/songs/upload",
+        headers: authHeaders() as Record<string, string>,
+        clientPayload: JSON.stringify({ title }),
+        multipart: file.size > 4 * 1024 * 1024,
+        contentType: file.type || "audio/mpeg",
       });
+
+      const res = await fetch("/api/songs/register", {
+        method: "POST",
+        headers: {
+          ...authHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ title, url: blob.url }),
+      });
+
       if (!res.ok) {
-        const data = (await res.json()) as { error?: string };
-        throw new Error(data.error || "Upload failed");
+        throw new Error(await readApiError(res, "Could not save song"));
       }
+
       e.currentTarget.reset();
       setStatus("Song added for Ava!");
       await load();

@@ -52,6 +52,25 @@ export async function writeSongsIndex(songs: Song[]): Promise<void> {
   });
 }
 
+export async function registerUploadedSong(
+  title: string,
+  url: string,
+): Promise<Song> {
+  const song: Song = {
+    id: crypto.randomUUID(),
+    title: title.trim(),
+    url,
+    uploadedAt: new Date().toISOString(),
+  };
+
+  const songs = (await readSongsIndex()).filter(
+    (s) => !BUNDLED_SONGS.some((b) => b.id === s.id),
+  );
+  songs.unshift(song);
+  await writeSongsIndex(songs);
+  return song;
+}
+
 export async function addSong(title: string, file: File): Promise<Song> {
   const id = crypto.randomUUID();
   const ext = file.name.split(".").pop() || "mp3";

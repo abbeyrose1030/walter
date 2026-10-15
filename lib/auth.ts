@@ -7,13 +7,20 @@ export function getTeacherPassword(): string {
   return DEFAULT_TEACHER_PASSWORD;
 }
 
-export function isTeacherAuthorized(request: NextRequest): boolean {
+export function teacherPasswordFromRequest(request: Request): boolean {
   const secret = getTeacherPassword();
-
   const header = request.headers.get("x-teacher-password");
   if (header === secret) return true;
 
-  const url = new URL(request.url);
-  const query = url.searchParams.get("key");
-  return query === secret;
+  try {
+    const url = new URL(request.url);
+    const query = url.searchParams.get("key");
+    return query === secret;
+  } catch {
+    return false;
+  }
+}
+
+export function isTeacherAuthorized(request: NextRequest): boolean {
+  return teacherPasswordFromRequest(request);
 }
