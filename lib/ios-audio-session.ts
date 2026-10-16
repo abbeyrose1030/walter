@@ -53,6 +53,5 @@ export function prepareIOSAudioSessionForCapture(): void {
 }
 
 export async function activateIOSPlayAndRecord(): Promise<void> {
-  await setIOSMicrophoneCaptureActive(true);
   setIOSPlayAndRecord();
 }

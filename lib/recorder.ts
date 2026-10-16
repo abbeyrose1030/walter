@@ -5,16 +5,26 @@ import {
 } from "@/lib/ios-audio-session";
 
 const VIDEO_MIME_CANDIDATES = [
-  "video/mp4;codecs=avc1,mp4a.40.2",
-  "video/mp4;codecs=avc1",
-  "video/mp4",
   "video/webm;codecs=vp9,opus",
   "video/webm;codecs=vp8,opus",
   "video/webm",
+  "video/mp4;codecs=avc1,mp4a.40.2",
+  "video/mp4;codecs=avc1",
+  "video/mp4",
 ];
+
+function isAppleTouchDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
 
 export function pickRecorderMimeType(): string | undefined {
   if (typeof MediaRecorder === "undefined") return undefined;
+  // Let WebKit pick the muxer on iOS — explicit types often drop audio.
+  if (isAppleTouchDevice()) return undefined;
   for (const mime of VIDEO_MIME_CANDIDATES) {
     if (MediaRecorder.isTypeSupported(mime)) return mime;
   }
@@ -66,7 +76,12 @@ export class PracticeRecorder {
       if (e.data.size > 0) this.chunks.push(e.data);
     };
 
-    this.recorder.start(1000);
+    // No timeslice on iOS — avoids empty/silent first segments in Safari.
+    if (isAppleTouchDevice()) {
+      this.recorder.start();
+    } else {
+      this.recorder.start(1000);
+    }
   }
 
   stop(): Promise<{ blob: Blob; mimeType: string }> {
@@ -90,7 +105,14 @@ export class PracticeRecorder {
         reject(new Error("Recording failed"));
       };
 
-      if (recorder.state !== "inactive") recorder.stop();
+      if (recorder.state === "recording") {
+        try {
+          recorder.requestData();
+        } catch {
+          /* optional on some browsers */
+        }
+        recorder.stop();
+      }
     });
   }
 

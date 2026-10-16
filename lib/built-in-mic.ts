@@ -14,10 +14,22 @@ const PRACTICE_VIDEO: MediaTrackConstraints = {
 
 /** Front camera + default mic in one getUserMedia call (Safari-friendly). */
 export async function openPracticeMediaStream(): Promise<MediaStream> {
-  return navigator.mediaDevices.getUserMedia({
-    video: PRACTICE_VIDEO,
-    audio: MIC_CAPTURE_CONSTRAINTS,
-  });
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      video: PRACTICE_VIDEO,
+      audio: MIC_CAPTURE_CONSTRAINTS,
+    });
+  } catch {
+    return navigator.mediaDevices.getUserMedia({
+      video: PRACTICE_VIDEO,
+      audio: true,
+    });
+  }
+}
+
+/** Preview element should only get video (not mic tracks). */
+export function previewVideoStream(full: MediaStream): MediaStream {
+  return new MediaStream(full.getVideoTracks());
 }
 
 export function getActiveMicrophoneLabel(stream: MediaStream | null): string {

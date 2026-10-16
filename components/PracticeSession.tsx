@@ -4,7 +4,10 @@ import { uploadPresigned } from "@vercel/blob/client";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { APP_NAME, INSTRUCTOR_NAME, STUDENT_NAME } from "@/lib/branding";
-import { getActiveMicrophoneLabel } from "@/lib/built-in-mic";
+import {
+  getActiveMicrophoneLabel,
+  previewVideoStream,
+} from "@/lib/built-in-mic";
 import { restoreIOSPlaybackSession } from "@/lib/ios-audio-session";
 import { readApiError } from "@/lib/read-api-error";
 import { PracticeRecorder } from "@/lib/recorder";
@@ -30,6 +33,7 @@ export function PracticeSession({
   referenceVideoUrl,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const referenceRef = useRef<HTMLVideoElement>(null);
   const recorderRef = useRef<PracticeRecorder | null>(null);
   const accessStarted = useRef(false);
 
@@ -40,8 +44,12 @@ export function PracticeSession({
   const attachPreview = useCallback((stream: MediaStream | null) => {
     const el = videoRef.current;
     if (!el) return;
-    el.srcObject = stream;
-    if (stream) void el.play().catch(() => {});
+    if (!stream) {
+      el.srcObject = null;
+      return;
+    }
+    el.srcObject = previewVideoStream(stream);
+    void el.play().catch(() => {});
   }, []);
 
   const requestCameraAccess = useCallback(async () => {
@@ -83,6 +91,7 @@ export function PracticeSession({
       return;
     }
     try {
+      referenceRef.current?.pause();
       await recorder.startRecording();
       setPhase("recording");
     } catch (err) {
@@ -179,6 +188,7 @@ export function PracticeSession({
           {INSTRUCTOR_NAME}&apos;s reference
         </p>
         <video
+          ref={referenceRef}
           src={referenceVideoUrl}
           controls
           playsInline
