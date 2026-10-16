@@ -8,8 +8,6 @@ export const GUITAR_STRINGS = [
   { id: "e4", label: "E", string: 1, freq: 329.63 },
 ] as const;
 
-const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-
 /** Autocorrelation pitch (Hz). Returns -1 if too quiet / unclear. */
 export function detectPitchHz(
   buffer: Float32Array,
@@ -86,8 +84,10 @@ export function centsOffTarget(detectedHz: number, targetHz: number): number {
 }
 
 /** Nearest guitar string for a detected frequency. */
-export function nearestGuitarString(hz: number): (typeof GUITAR_STRINGS)[number] {
-  let best = GUITAR_STRINGS[0];
+export type GuitarString = (typeof GUITAR_STRINGS)[number];
+
+export function nearestGuitarString(hz: number): GuitarString {
+  let best: GuitarString = GUITAR_STRINGS[0];
   let bestDiff = Infinity;
   for (const s of GUITAR_STRINGS) {
     const diff = Math.abs(Math.log2(hz / s.freq));
@@ -97,12 +97,4 @@ export function nearestGuitarString(hz: number): (typeof GUITAR_STRINGS)[number]
     }
   }
   return best;
-}
-
-export function hzToNoteName(hz: number): string {
-  if (hz <= 0) return "—";
-  const midi = Math.round(12 * Math.log2(hz / 440) + 69);
-  const name = NOTE_NAMES[((midi % 12) + 12) % 12];
-  const octave = Math.floor(midi / 12) - 1;
-  return `${name}${octave}`;
 }

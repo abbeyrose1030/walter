@@ -65,7 +65,7 @@ export function GuitarTuner() {
       bufferRef.current = new Float32Array(analyser.fftSize);
     }
     const buf = bufferRef.current;
-    analyser.getFloatTimeDomainData(buf);
+    analyser.getFloatTimeDomainData(buf as Float32Array<ArrayBuffer>);
 
     const hz = detectPitchHz(buf, ctx.sampleRate);
     const manual = GUITAR_STRINGS.find((s) => s.id === targetIdRef.current);
