@@ -77,7 +77,7 @@ export function AudioDevicePicker({ disabled, onReady }: Props) {
           onClick={() => void loadDevices()}
           className="w-full rounded-xl bg-[var(--walter-sky)] px-4 py-3 font-bold text-white disabled:opacity-50"
         >
-          {loading ? "Loading…" : "Choose headphones & mic"}
+          {loading ? "Loading…" : "Allow camera & choose devices"}
         </button>
       ) : (
         <div className="flex flex-col gap-3">

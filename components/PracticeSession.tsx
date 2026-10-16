@@ -20,7 +20,14 @@ type Props = {
   trackUrl: string;
 };
 
-type Phase = "ready" | "countdown" | "recording" | "uploading" | "done" | "error";
+type Phase =
+  | "ready"
+  | "preparing"
+  | "countdown"
+  | "recording"
+  | "uploading"
+  | "done"
+  | "error";
 
 export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -71,27 +78,29 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
     if (!player) return;
 
     if (!audioSelection?.inputId || !audioSelection.outputId) {
-      setMessage("Tap “Choose headphones & mic” and pick both devices first.");
+      setMessage("Tap “Allow camera & choose devices” and pick both devices first.");
       return;
     }
 
     try {
-      player.setOutputDevice(audioSelection.outputId);
       await player.unlock();
       setIOSPlayAndRecord();
 
       const recorder = new PracticeRecorder();
       recorderRef.current = recorder;
 
-      setPhase("countdown");
-      setCountdown(3);
+      setPhase("preparing");
+      // Permission + camera preview before countdown (not during 3-2-1).
       await recorder.prepare(audioSelection.inputId);
       attachPreview(recorder.previewStream);
       setMicLabel(getActiveMicrophoneLabel(recorder.previewStream));
 
+      player.setOutputDevice(audioSelection.outputId);
       await player.play(0);
       player.setVolume(1);
 
+      setPhase("countdown");
+      setCountdown(3);
       for (let i = 3; i >= 1; i--) {
         setCountdown(i);
         await new Promise((r) => setTimeout(r, 800));
@@ -102,6 +111,9 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
     } catch (err) {
       console.error(err);
       playerRef.current?.stop();
+      recorderRef.current?.cancel();
+      recorderRef.current = null;
+      attachPreview(null);
       restoreIOSPlaybackSession();
       setMessage(
         `Camera or mic blocked. Allow ${APP_NAME} to use camera & microphone in Settings.`,
@@ -196,6 +208,15 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
           className="aspect-[3/4] w-full object-cover"
           style={{ transform: "scaleX(-1)" }}
         />
+        {phase === "preparing" && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 px-6 text-center">
+            <p className="text-xl font-bold text-white">Allow camera &amp; microphone</p>
+            <p className="mt-2 text-sm font-medium text-white/90">
+              Tap <strong>Allow</strong> when your iPad asks. The countdown starts
+              after that.
+            </p>
+          </div>
+        )}
         {phase === "countdown" && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/40">
             <span className="text-8xl font-bold text-[var(--walter-sun)]">
@@ -203,7 +224,9 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
             </span>
           </div>
         )}
-        {(phase === "recording" || phase === "countdown") && (
+        {(phase === "recording" ||
+          phase === "countdown" ||
+          phase === "preparing") && (
           <div className="absolute left-3 top-3 flex flex-col items-start gap-1">
             {phase === "recording" && (
               <div className="flex items-center gap-2 rounded-full bg-[var(--walter-coral)] px-3 py-1 text-sm font-bold text-white">
@@ -255,7 +278,9 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
           </button>
         )}
 
-        {(phase === "countdown" || phase === "recording") && (
+        {(phase === "preparing" ||
+          phase === "countdown" ||
+          phase === "recording") && (
           <button
             type="button"
             onClick={cancel}

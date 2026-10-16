@@ -5,8 +5,9 @@ import {
 } from "@/lib/ios-audio-session";
 
 const VIDEO_MIME_CANDIDATES = [
-  "video/mp4",
+  "video/mp4;codecs=avc1,mp4a.40.2",
   "video/mp4;codecs=avc1",
+  "video/mp4",
   "video/webm;codecs=vp9,opus",
   "video/webm;codecs=vp8,opus",
   "video/webm",
@@ -52,6 +53,12 @@ export class PracticeRecorder {
     if (this.recorder?.state === "recording") return;
 
     this.chunks = [];
+
+    const audioTrack = this.stream!.getAudioTracks()[0];
+    if (!audioTrack || audioTrack.readyState !== "live") {
+      throw new Error("Microphone is not active — pick a mic and try again.");
+    }
+    audioTrack.enabled = true;
 
     const mimeType = pickRecorderMimeType();
     this.recorder = mimeType

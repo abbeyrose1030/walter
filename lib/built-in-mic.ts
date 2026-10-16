@@ -170,9 +170,16 @@ async function forceBuiltInMic(
   }
 }
 
+const PRACTICE_VIDEO: MediaTrackConstraints = {
+  facingMode: "user",
+  width: { ideal: 1280 },
+  height: { ideal: 720 },
+};
+
 /**
- * Front camera + iPad built-in mic (never prefer headset mic when avoidable).
- * Video is requested without audio first so we can match the camera's device group.
+ * Front camera + chosen mic in one getUserMedia call.
+ * Safari/iOS MediaRecorder often records silent audio when video and mic come
+ * from separate capture sessions and are merged manually.
  */
 export async function openPracticeMediaStream(
   micDeviceId: string,
@@ -181,19 +188,36 @@ export async function openPracticeMediaStream(
     throw new Error("Choose a microphone first");
   }
 
-  const videoStream = await navigator.mediaDevices.getUserMedia({
-    video: {
-      facingMode: "user",
-      width: { ideal: 1280 },
-      height: { ideal: 720 },
+  const attempts: MediaStreamConstraints[] = [
+    {
+      video: PRACTICE_VIDEO,
+      audio: { ...MIC_CAPTURE_CONSTRAINTS, deviceId: { ideal: micDeviceId } },
     },
-    audio: false,
-  });
+    {
+      video: PRACTICE_VIDEO,
+      audio: { ...MIC_CAPTURE_CONSTRAINTS, deviceId: { exact: micDeviceId } },
+    },
+    { video: PRACTICE_VIDEO, audio: MIC_CAPTURE_CONSTRAINTS },
+  ];
 
-  const videoTrack = videoStream.getVideoTracks()[0];
-  const audioTrack = await acquireAudioTrack(micDeviceId);
+  let lastError: unknown;
+  for (const constraints of attempts) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      const audio = stream.getAudioTracks()[0];
+      if (audio) {
+        audio.enabled = true;
+        return stream;
+      }
+      stream.getTracks().forEach((t) => t.stop());
+    } catch (err) {
+      lastError = err;
+    }
+  }
 
-  return new MediaStream([videoTrack, audioTrack]);
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("No microphone available");
 }
 
 export function getActiveMicrophoneLabel(stream: MediaStream | null): string {
