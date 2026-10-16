@@ -15,6 +15,10 @@ export default async function PracticePage({
   if (!song) notFound();
 
   return (
-    <PracticeSession songId={song.id} songTitle={song.title} trackUrl={song.url} />
+    <PracticeSession
+      songId={song.id}
+      songTitle={song.title}
+      referenceVideoUrl={song.url}
+    />
   );
 }

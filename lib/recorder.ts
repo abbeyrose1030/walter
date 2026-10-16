@@ -21,12 +21,10 @@ export function pickRecorderMimeType(): string | undefined {
   return undefined;
 }
 
-export async function openFrontCameraStream(
-  micDeviceId: string,
-): Promise<MediaStream> {
+export async function openFrontCameraStream(): Promise<MediaStream> {
   prepareIOSAudioSessionForCapture();
-  const stream = await openPracticeMediaStream(micDeviceId);
-  activateIOSPlayAndRecord();
+  const stream = await openPracticeMediaStream();
+  await activateIOSPlayAndRecord();
   return stream;
 }
 
@@ -39,26 +37,25 @@ export class PracticeRecorder {
     return this.stream;
   }
 
-  /** Open camera + mic (preview during countdown). */
-  async prepare(micDeviceId: string): Promise<void> {
+  async prepare(): Promise<void> {
     if (this.stream) return;
-    this.stream = await openFrontCameraStream(micDeviceId);
+    this.stream = await openFrontCameraStream();
   }
 
-  /** Start writing video after countdown. */
-  async startRecording(micDeviceId: string): Promise<void> {
+  async startRecording(): Promise<void> {
     if (!this.stream) {
-      await this.prepare(micDeviceId);
+      await this.prepare();
     }
     if (this.recorder?.state === "recording") return;
 
-    this.chunks = [];
-
     const audioTrack = this.stream!.getAudioTracks()[0];
     if (!audioTrack || audioTrack.readyState !== "live") {
-      throw new Error("Microphone is not active — pick a mic and try again.");
+      throw new Error("Microphone is not active — allow access and try again.");
     }
     audioTrack.enabled = true;
+    await activateIOSPlayAndRecord();
+
+    this.chunks = [];
 
     const mimeType = pickRecorderMimeType();
     this.recorder = mimeType
@@ -70,12 +67,6 @@ export class PracticeRecorder {
     };
 
     this.recorder.start(1000);
-  }
-
-  /** @deprecated use prepare + startRecording */
-  async start(micDeviceId: string): Promise<void> {
-    await this.prepare(micDeviceId);
-    await this.startRecording(micDeviceId);
   }
 
   stop(): Promise<{ blob: Blob; mimeType: string }> {

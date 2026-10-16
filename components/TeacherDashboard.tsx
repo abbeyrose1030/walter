@@ -5,7 +5,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { APP_NAME, INSTRUCTOR_NAME, STUDENT_NAME } from "@/lib/branding";
 import { readApiError } from "@/lib/read-api-error";
 
-type Song = { id: string; title: string; uploadedAt: string };
+type Assignment = { id: string; title: string; url: string; uploadedAt: string };
 type Video = {
   id: string;
   songTitle: string;
@@ -19,7 +19,7 @@ type Props = { initialKey?: string };
 export function TeacherDashboard({ initialKey = "" }: Props) {
   const [key, setKey] = useState(initialKey);
   const [storedKey, setStoredKey] = useState("");
-  const [songs, setSongs] = useState<Song[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
   const [status, setStatus] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -33,8 +33,8 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
       fetch("/api/songs"),
       fetch("/api/videos", { headers: authHeaders() }),
     ]);
-    const songsData = (await songsRes.json()) as { songs: Song[] };
-    setSongs(songsData.songs);
+    const songsData = (await songsRes.json()) as { songs: Assignment[] };
+    setAssignments(songsData.songs);
     if (videosRes.ok) {
       const videosData = (await videosRes.json()) as { videos: Video[] };
       setVideos(videosData.videos);
@@ -84,7 +84,7 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
     setKey("");
   };
 
-  const uploadSong = async (e: FormEvent<HTMLFormElement>) => {
+  const uploadReference = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!storedKey) {
       setStatus(`Enter your ${INSTRUCTOR_NAME} password first.`);
@@ -97,13 +97,13 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
     const file = form.get("file");
 
     if (!title || !(file instanceof File)) {
-      setStatus("Add a song name and pick an audio file.");
+      setStatus("Add a riff name and pick a reference video.");
       setUploading(false);
       return;
     }
 
     const id = crypto.randomUUID();
-    const ext = file.name.split(".").pop()?.toLowerCase() || "mp3";
+    const ext = file.name.split(".").pop()?.toLowerCase() || "mp4";
     const pathname = `songs/${id}.${ext}`;
 
     try {
@@ -113,7 +113,7 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
         headers: authHeaders() as Record<string, string>,
         clientPayload: JSON.stringify({ title }),
         multipart: file.size > 4 * 1024 * 1024,
-        contentType: file.type || "audio/mpeg",
+        contentType: file.type || "video/mp4",
       });
 
       const res = await fetch("/api/songs/register", {
@@ -126,11 +126,11 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
       });
 
       if (!res.ok) {
-        throw new Error(await readApiError(res, "Could not save song"));
+        throw new Error(await readApiError(res, "Could not save assignment"));
       }
 
       e.currentTarget.reset();
-      setStatus(`Song added for ${STUDENT_NAME}!`);
+      setStatus(`Reference video added for ${STUDENT_NAME}!`);
       await load();
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Upload failed");
@@ -139,9 +139,9 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
     }
   };
 
-  const removeSong = async (id: string) => {
+  const removeAssignment = async (id: string) => {
     if (!storedKey) return;
-    if (!confirm("Remove this song?")) return;
+    if (!confirm("Remove this riff and its reference video?")) return;
     const res = await fetch(`/api/songs?id=${id}`, {
       method: "DELETE",
       headers: authHeaders(),
@@ -156,7 +156,7 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
       <div className="mb-6 text-center">
         <p className="text-3xl font-bold text-[var(--walter-grape)]">{INSTRUCTOR_NAME}</p>
         <p className="mt-1 text-sm opacity-80">
-          Upload songs & watch {STUDENT_NAME}&apos;s videos.
+          Upload reference riffs & watch {STUDENT_NAME}&apos;s practice videos.
         </p>
       </div>
 
@@ -196,18 +196,25 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
       )}
 
       {teacherUnlocked && (
-        <form onSubmit={uploadSong} className="mb-8 rounded-2xl bg-white p-5 shadow-sm">
-          <h2 className="mb-3 font-bold">Add a practice song</h2>
+        <form
+          onSubmit={(e) => void uploadReference(e)}
+          className="mb-8 rounded-2xl bg-white p-5 shadow-sm"
+        >
+          <h2 className="mb-1 font-bold">Reference video</h2>
+          <p className="mb-3 text-xs opacity-70">
+            Record yourself playing the riff — {STUDENT_NAME} will watch this before
+            she records.
+          </p>
           <input
             name="title"
             required
-            placeholder="Song name"
+            placeholder="Riff name (e.g. Smoke on the Water intro)"
             className="mb-2 w-full rounded-xl border px-3 py-2"
           />
           <input
             name="file"
             type="file"
-            accept="audio/*"
+            accept="video/*"
             required
             className="mb-3 w-full text-sm"
           />
@@ -216,7 +223,7 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
             disabled={uploading}
             className="rounded-xl bg-[var(--walter-sky)] px-4 py-2 font-semibold text-white disabled:opacity-50"
           >
-            {uploading ? "Uploading…" : `Upload for ${STUDENT_NAME}`}
+            {uploading ? "Uploading…" : "Upload reference video"}
           </button>
         </form>
       )}
@@ -226,34 +233,43 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
       )}
 
       <section className="mb-8">
-        <h2 className="mb-2 font-bold">Songs ({songs.length})</h2>
-        <ul className="flex flex-col gap-2">
-          {songs.map((s) => (
-            <li
-              key={s.id}
-              className="flex items-center justify-between rounded-xl bg-white px-4 py-3 text-sm"
-            >
-              <span>{s.title}</span>
-              {teacherUnlocked && (
-                <button
-                  type="button"
-                  onClick={() => void removeSong(s.id)}
-                  className="text-[var(--walter-coral)]"
-                >
-                  Remove
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
+        <h2 className="mb-2 font-bold">Riffs ({assignments.length})</h2>
+        {assignments.length === 0 ? (
+          <p className="text-sm opacity-70">No reference videos yet.</p>
+        ) : (
+          <ul className="flex flex-col gap-4">
+            {assignments.map((a) => (
+              <li key={a.id} className="rounded-2xl bg-white p-3 shadow-sm">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold">{a.title}</span>
+                  {teacherUnlocked && (
+                    <button
+                      type="button"
+                      onClick={() => void removeAssignment(a.id)}
+                      className="shrink-0 text-xs font-semibold text-[var(--walter-coral)]"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <video
+                  src={a.url}
+                  controls
+                  playsInline
+                  className="w-full rounded-xl bg-black"
+                />
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {teacherUnlocked && (
         <section>
-          <h2 className="mb-2 font-bold">Practice videos ({videos.length})</h2>
+          <h2 className="mb-2 font-bold">{STUDENT_NAME}&apos;s practice videos ({videos.length})</h2>
           {videos.length === 0 ? (
             <p className="text-sm opacity-70">
-              No videos yet — tell {STUDENT_NAME} to hit {APP_NAME}!
+              No videos yet — tell {STUDENT_NAME} to open {APP_NAME}!
             </p>
           ) : (
             <ul className="flex flex-col gap-6">

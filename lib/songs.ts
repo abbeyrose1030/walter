@@ -1,9 +1,11 @@
 import { list, put, del } from "@vercel/blob";
 import { isBlobStorageConfigured } from "@/lib/blob-storage";
 
+/** A practice assignment: title + Abbey's reference performance video. */
 export type Song = {
   id: string;
   title: string;
+  /** Reference video URL (teacher demo of the riff). */
   url: string;
   uploadedAt: string;
 };
@@ -65,13 +67,13 @@ export async function registerUploadedSong(
 
 export async function addSong(title: string, file: File): Promise<Song> {
   const id = crypto.randomUUID();
-  const ext = file.name.split(".").pop() || "mp3";
+  const ext = file.name.split(".").pop() || "mp4";
   const pathname = `songs/${id}.${ext}`;
 
   const blob = await put(pathname, file, {
     access: "public",
     addRandomSuffix: false,
-    contentType: file.type || "audio/mpeg",
+    contentType: file.type || "video/mp4",
   });
 
   const song: Song = {

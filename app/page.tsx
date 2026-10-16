@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { GuitarTuner } from "@/components/GuitarTuner";
 import { APP_NAME, INSTRUCTOR_NAME, STUDENT_NAME } from "@/lib/branding";
 import { readSongsIndex } from "@/lib/songs";
 
@@ -14,15 +15,17 @@ export default async function HomePage() {
           {APP_NAME}
         </p>
         <p className="mt-2 text-lg font-medium">
-          Hey {STUDENT_NAME}! 👋 Pick a song to practice.
+          Hey {STUDENT_NAME}! 👋 Pick a riff to practice.
         </p>
       </div>
 
+      <GuitarTuner />
+
       {songs.length === 0 ? (
         <div className="rounded-3xl border-2 border-dashed border-[var(--walter-sky)] bg-white p-8 text-center">
-          <p className="text-lg font-semibold">No songs yet</p>
+          <p className="text-lg font-semibold">No riffs yet</p>
           <p className="mt-2 text-sm opacity-80">
-            {INSTRUCTOR_NAME} will add practice tracks here.
+            {INSTRUCTOR_NAME} will add reference videos here.
           </p>
         </div>
       ) : (
@@ -34,7 +37,7 @@ export default async function HomePage() {
                 className="flex items-center justify-between rounded-2xl bg-white px-5 py-4 text-lg font-semibold shadow-sm ring-2 ring-transparent transition active:ring-[var(--walter-sun)]"
               >
                 <span>{song.title}</span>
-                <span aria-hidden>🎵</span>
+                <span aria-hidden>🎸</span>
               </Link>
             </li>
           ))}

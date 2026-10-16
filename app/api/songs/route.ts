@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 
   if (!title || !(file instanceof File)) {
     return NextResponse.json(
-      { error: "Title and audio file required" },
+      { error: "Title and reference video required" },
       { status: 400 },
     );
   }
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     console.error("Song upload failed:", err);
     return NextResponse.json(
-      { error: "Upload failed. Try again or use a smaller MP3." },
+      { error: "Upload failed. Try again or use a smaller video." },
       { status: 500 },
     );
   }

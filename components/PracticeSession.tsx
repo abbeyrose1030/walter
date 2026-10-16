@@ -3,67 +3,39 @@
 import { uploadPresigned } from "@vercel/blob/client";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BackingAudioPlayer } from "@/lib/backing-audio";
 import { APP_NAME, INSTRUCTOR_NAME, STUDENT_NAME } from "@/lib/branding";
-import { readApiError } from "@/lib/read-api-error";
-import {
-  AudioDevicePicker,
-  type AudioDeviceSelection,
-} from "@/components/AudioDevicePicker";
 import { getActiveMicrophoneLabel } from "@/lib/built-in-mic";
-import { restoreIOSPlaybackSession, setIOSPlayAndRecord } from "@/lib/ios-audio-session";
+import { restoreIOSPlaybackSession } from "@/lib/ios-audio-session";
+import { readApiError } from "@/lib/read-api-error";
 import { PracticeRecorder } from "@/lib/recorder";
 
 type Props = {
   songId: string;
   songTitle: string;
-  trackUrl: string;
+  referenceVideoUrl: string;
 };
 
 type Phase =
-  | "ready"
   | "preparing"
-  | "countdown"
+  | "need-access"
+  | "ready"
   | "recording"
   | "uploading"
   | "done"
   | "error";
 
-export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
+export function PracticeSession({
+  songId,
+  songTitle,
+  referenceVideoUrl,
+}: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const playerRef = useRef<BackingAudioPlayer | null>(null);
   const recorderRef = useRef<PracticeRecorder | null>(null);
+  const accessStarted = useRef(false);
 
-  const [phase, setPhase] = useState<Phase>("ready");
-  const [countdown, setCountdown] = useState(3);
+  const [phase, setPhase] = useState<Phase>("preparing");
   const [message, setMessage] = useState("");
-  const [loadingTrack, setLoadingTrack] = useState(true);
   const [micLabel, setMicLabel] = useState("");
-  const [audioSelection, setAudioSelection] =
-    useState<AudioDeviceSelection | null>(null);
-
-  useEffect(() => {
-    const player = new BackingAudioPlayer();
-    playerRef.current = player;
-
-    (async () => {
-      try {
-        await player.loadFromUrl(trackUrl);
-      } catch {
-        setMessage(
-          `Could not load the song. Ask ${INSTRUCTOR_NAME} to check the upload.`,
-        );
-        setPhase("error");
-      } finally {
-        setLoadingTrack(false);
-      }
-    })();
-
-    return () => {
-      player.dispose();
-      recorderRef.current?.cancel();
-    };
-  }, [trackUrl]);
 
   const attachPreview = useCallback((stream: MediaStream | null) => {
     const el = videoRef.current;
@@ -72,63 +44,59 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
     if (stream) void el.play().catch(() => {});
   }, []);
 
-  const startSession = async () => {
+  const requestCameraAccess = useCallback(async () => {
     setMessage("");
-    const player = playerRef.current;
-    if (!player) return;
-
-    if (!audioSelection?.inputId || !audioSelection.outputId) {
-      setMessage("Tap “Allow camera & choose devices” and pick both devices first.");
-      return;
-    }
-
+    setPhase("preparing");
     try {
-      await player.unlock();
-      setIOSPlayAndRecord();
-
+      recorderRef.current?.cancel();
       const recorder = new PracticeRecorder();
       recorderRef.current = recorder;
-
-      setPhase("preparing");
-      // Permission + camera preview before countdown (not during 3-2-1).
-      await recorder.prepare(audioSelection.inputId);
+      await recorder.prepare();
       attachPreview(recorder.previewStream);
       setMicLabel(getActiveMicrophoneLabel(recorder.previewStream));
-
-      player.setOutputDevice(audioSelection.outputId);
-      await player.play(0);
-      player.setVolume(1);
-
-      setPhase("countdown");
-      setCountdown(3);
-      for (let i = 3; i >= 1; i--) {
-        setCountdown(i);
-        await new Promise((r) => setTimeout(r, 800));
-      }
-
-      await recorder.startRecording(audioSelection.inputId);
-      setPhase("recording");
+      setPhase("ready");
     } catch (err) {
       console.error(err);
-      playerRef.current?.stop();
       recorderRef.current?.cancel();
       recorderRef.current = null;
       attachPreview(null);
-      restoreIOSPlaybackSession();
+      setPhase("need-access");
       setMessage(
-        `Camera or mic blocked. Allow ${APP_NAME} to use camera & microphone in Settings.`,
+        `Tap below and choose Allow so ${APP_NAME} can use your camera and microphone.`,
       );
+    }
+  }, [attachPreview]);
+
+  useEffect(() => {
+    if (accessStarted.current) return;
+    accessStarted.current = true;
+    void requestCameraAccess();
+    return () => {
+      recorderRef.current?.cancel();
+    };
+  }, [requestCameraAccess]);
+
+  const startRecording = async () => {
+    const recorder = recorderRef.current;
+    if (!recorder) {
+      await requestCameraAccess();
+      return;
+    }
+    try {
+      await recorder.startRecording();
+      setPhase("recording");
+    } catch (err) {
+      console.error(err);
+      setMessage("Could not start recording. Try again.");
       setPhase("error");
     }
   };
 
   const stopAndUpload = async () => {
     const recorder = recorderRef.current;
-    const player = playerRef.current;
     if (!recorder) return;
 
     setPhase("uploading");
-    player?.stop();
     attachPreview(null);
 
     try {
@@ -179,11 +147,16 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
     }
   };
 
-  const cancel = () => {
-    playerRef.current?.stop();
-    recorderRef.current?.cancel();
-    attachPreview(null);
-    restoreIOSPlaybackSession();
+  const cancelRecording = () => {
+    const recorder = recorderRef.current;
+    if (recorder && phase === "recording") {
+      try {
+        recorder.cancel();
+      } catch {
+        /* ignore */
+      }
+      void requestCameraAccess();
+    }
     setPhase("ready");
   };
 
@@ -194,10 +167,27 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
           href="/"
           className="rounded-full bg-white px-4 py-2 text-sm font-semibold shadow-sm"
         >
-          ← Songs
+          ← Riffs
         </Link>
-        <span className="text-right text-sm font-medium opacity-80">{songTitle}</span>
+        <span className="text-right text-sm font-medium opacity-80">
+          {songTitle}
+        </span>
       </header>
+
+      <section className="mb-4 rounded-2xl bg-white p-3 shadow-sm">
+        <p className="mb-2 text-center text-xs font-bold uppercase tracking-wide text-[var(--walter-grape)]">
+          {INSTRUCTOR_NAME}&apos;s reference
+        </p>
+        <video
+          src={referenceVideoUrl}
+          controls
+          playsInline
+          className="aspect-video w-full rounded-xl bg-black"
+        />
+        <p className="mt-2 text-center text-xs opacity-70">
+          Watch this, then record yourself playing the same riff below.
+        </p>
+      </section>
 
       <div className="relative mb-4 overflow-hidden rounded-3xl border-4 border-[var(--walter-coral)] bg-black shadow-lg">
         <video
@@ -212,21 +202,11 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 px-6 text-center">
             <p className="text-xl font-bold text-white">Allow camera &amp; microphone</p>
             <p className="mt-2 text-sm font-medium text-white/90">
-              Tap <strong>Allow</strong> when your iPad asks. The countdown starts
-              after that.
+              Tap <strong>Allow</strong> when your iPad asks.
             </p>
           </div>
         )}
-        {phase === "countdown" && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-            <span className="text-8xl font-bold text-[var(--walter-sun)]">
-              {countdown}
-            </span>
-          </div>
-        )}
-        {(phase === "recording" ||
-          phase === "countdown" ||
-          phase === "preparing") && (
+        {(phase === "recording" || phase === "ready") && (
           <div className="absolute left-3 top-3 flex flex-col items-start gap-1">
             {phase === "recording" && (
               <div className="flex items-center gap-2 rounded-full bg-[var(--walter-coral)] px-3 py-1 text-sm font-bold text-white">
@@ -234,7 +214,7 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
                 REC
               </div>
             )}
-            {micLabel && (
+            {micLabel && phase === "recording" && (
               <div className="max-w-[12rem] rounded-lg bg-black/55 px-2 py-1 text-[10px] font-medium leading-tight text-white">
                 Mic: {micLabel}
               </div>
@@ -243,13 +223,6 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
         )}
       </div>
 
-      {phase === "ready" && (
-        <AudioDevicePicker
-          disabled={loadingTrack}
-          onReady={(selection) => setAudioSelection(selection)}
-        />
-      )}
-
       {message && (
         <p className="mb-4 rounded-2xl bg-white px-4 py-3 text-center text-sm text-[var(--walter-coral)]">
           {message}
@@ -257,37 +230,43 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
       )}
 
       <div className="mt-auto flex flex-col gap-3">
+        {phase === "need-access" && (
+          <button
+            type="button"
+            onClick={() => void requestCameraAccess()}
+            className="rounded-2xl bg-[var(--walter-sky)] px-6 py-5 text-xl font-bold text-white shadow-md active:scale-[0.98]"
+          >
+            Allow camera &amp; microphone
+          </button>
+        )}
+
         {phase === "ready" && (
           <button
             type="button"
-            disabled={loadingTrack || !audioSelection}
-            onClick={() => void startSession()}
-            className="rounded-2xl bg-[var(--walter-sky)] px-6 py-5 text-xl font-bold text-white shadow-md active:scale-[0.98] disabled:opacity-50"
+            onClick={() => void startRecording()}
+            className="rounded-2xl bg-[var(--walter-sky)] px-6 py-5 text-xl font-bold text-white shadow-md active:scale-[0.98]"
           >
-            {loadingTrack ? "Loading song…" : `Start with ${APP_NAME} 🎸`}
+            Record my riff 🎸
           </button>
         )}
 
         {phase === "recording" && (
-          <button
-            type="button"
-            onClick={() => void stopAndUpload()}
-            className="rounded-2xl bg-[var(--walter-coral)] px-6 py-5 text-xl font-bold text-white shadow-md active:scale-[0.98]"
-          >
-            Done! Send to {INSTRUCTOR_NAME} ✨
-          </button>
-        )}
-
-        {(phase === "preparing" ||
-          phase === "countdown" ||
-          phase === "recording") && (
-          <button
-            type="button"
-            onClick={cancel}
-            className="rounded-2xl bg-white px-6 py-3 text-base font-semibold shadow-sm"
-          >
-            Cancel
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => void stopAndUpload()}
+              className="rounded-2xl bg-[var(--walter-coral)] px-6 py-5 text-xl font-bold text-white shadow-md active:scale-[0.98]"
+            >
+              Done! Send to {INSTRUCTOR_NAME} ✨
+            </button>
+            <button
+              type="button"
+              onClick={cancelRecording}
+              className="rounded-2xl bg-white px-6 py-3 text-base font-semibold shadow-sm"
+            >
+              Cancel
+            </button>
+          </>
         )}
 
         {phase === "uploading" && (
@@ -303,7 +282,7 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
               href="/"
               className="rounded-2xl bg-[var(--walter-sun)] px-6 py-4 text-center text-lg font-bold shadow-md"
             >
-              Pick another song
+              Pick another riff
             </Link>
           </div>
         )}
@@ -311,10 +290,7 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
         {phase === "error" && (
           <button
             type="button"
-            onClick={() => {
-              setPhase("ready");
-              setMessage("");
-            }}
+            onClick={() => void requestCameraAccess()}
             className="rounded-2xl bg-[var(--walter-sun)] px-6 py-4 text-lg font-bold"
           >
             Try again

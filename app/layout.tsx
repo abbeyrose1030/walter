@@ -12,7 +12,7 @@ const fredoka = Fredoka({
 
 export const metadata: Metadata = {
   title: APP_NAME,
-  description: `Practice guitar with ${APP_NAME} — play along and record for ${INSTRUCTOR_NAME}!`,
+  description: `Practice guitar with ${APP_NAME} — watch ${INSTRUCTOR_NAME}'s reference and record for review!`,
   applicationName: APP_NAME,
   appleWebApp: {
     capable: true,

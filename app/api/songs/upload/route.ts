@@ -22,15 +22,12 @@ export const POST = createPresignedUploadHandler({
     }
     return {
       allowedContentTypes: [
-        "audio/mpeg",
-        "audio/mp3",
-        "audio/mp4",
-        "audio/x-m4a",
-        "audio/aac",
-        "audio/wav",
-        "audio/*",
+        "video/mp4",
+        "video/webm",
+        "video/quicktime",
+        "video/*",
       ],
-      maximumSizeInBytes: 200 * 1024 * 1024,
+      maximumSizeInBytes: 500 * 1024 * 1024,
     };
   },
 });
