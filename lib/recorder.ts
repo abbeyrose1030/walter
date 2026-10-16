@@ -95,7 +95,17 @@ export class PracticeRecorder {
       const mimeType = recorder.mimeType || "video/webm";
 
       recorder.onstop = () => {
+        if (this.chunks.length === 0) {
+          this.cleanup();
+          reject(new Error("Recording was empty — try again."));
+          return;
+        }
         const blob = new Blob(this.chunks, { type: mimeType });
+        if (blob.size < 1024) {
+          this.cleanup();
+          reject(new Error("Recording too short — try again."));
+          return;
+        }
         this.cleanup();
         resolve({ blob, mimeType });
       };

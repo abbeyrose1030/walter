@@ -29,17 +29,24 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
   }, [storedKey]);
 
   const load = useCallback(async () => {
-    const [songsRes, videosRes] = await Promise.all([
-      fetch("/api/songs"),
-      fetch("/api/videos", { headers: authHeaders() }),
-    ]);
+    const songsRes = await fetch("/api/songs", { cache: "no-store" });
     const songsData = (await songsRes.json()) as { songs: Assignment[] };
     setAssignments(songsData.songs);
+
+    if (!storedKey) {
+      setVideos([]);
+      return;
+    }
+
+    const videosRes = await fetch("/api/videos", {
+      cache: "no-store",
+      headers: authHeaders(),
+    });
     if (videosRes.ok) {
       const videosData = (await videosRes.json()) as { videos: Video[] };
-      setVideos(videosData.videos);
+      setVideos(videosData.videos.filter((v) => Boolean(v.url)));
     }
-  }, [authHeaders]);
+  }, [authHeaders, storedKey]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -266,7 +273,18 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
 
       {teacherUnlocked && (
         <section>
-          <h2 className="mb-2 font-bold">{STUDENT_NAME}&apos;s practice videos ({videos.length})</h2>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <h2 className="font-bold">
+              {STUDENT_NAME}&apos;s practice videos ({videos.length})
+            </h2>
+            <button
+              type="button"
+              onClick={() => void load()}
+              className="text-xs font-semibold text-[var(--walter-grape)]"
+            >
+              Refresh
+            </button>
+          </div>
           {videos.length === 0 ? (
             <p className="text-sm opacity-70">
               No videos yet — tell {STUDENT_NAME} to open {APP_NAME}!
@@ -282,8 +300,17 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
                     src={v.url}
                     controls
                     playsInline
+                    preload="metadata"
                     className="w-full rounded-xl bg-black"
                   />
+                  <a
+                    href={v.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-block text-xs font-semibold text-[var(--walter-sky)]"
+                  >
+                    Open video in new tab
+                  </a>
                 </li>
               ))}
             </ul>

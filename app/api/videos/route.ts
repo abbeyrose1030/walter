@@ -13,16 +13,23 @@ export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   const videos = await readVideosIndex();
   const teacher = isTeacherAuthorized(request);
+  const headers = {
+    "Cache-Control": "no-store, max-age=0",
+  };
+
   if (teacher) {
-    return NextResponse.json({ videos });
+    return NextResponse.json({ videos }, { headers });
   }
-  return NextResponse.json({
-    videos: videos.map((v) => ({
-      id: v.id,
-      songTitle: v.songTitle,
-      uploadedAt: v.uploadedAt,
-    })),
-  });
+  return NextResponse.json(
+    {
+      videos: videos.map((v) => ({
+        id: v.id,
+        songTitle: v.songTitle,
+        uploadedAt: v.uploadedAt,
+      })),
+    },
+    { headers },
+  );
 }
 
 export async function POST(request: NextRequest) {

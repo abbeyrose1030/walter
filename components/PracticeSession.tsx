@@ -113,12 +113,18 @@ export function PracticeSession({
       recorderRef.current = null;
       restoreIOSPlaybackSession();
 
-      const ext = mimeType.includes("mp4") ? "mp4" : "webm";
+      const normalizedType =
+        mimeType.includes("mp4") || mimeType.includes("quicktime")
+          ? "video/mp4"
+          : mimeType.includes("webm")
+            ? "video/webm"
+            : "video/mp4";
+      const ext = normalizedType.includes("webm") ? "webm" : "mp4";
       const id = crypto.randomUUID();
       const file = new File(
         [blob],
         `${STUDENT_NAME.toLowerCase()}-practice.${ext}`,
-        { type: mimeType },
+        { type: normalizedType },
       );
 
       const uploaded = await uploadPresigned(`videos/${id}.${ext}`, file, {
@@ -130,8 +136,13 @@ export function PracticeSession({
           studentName: STUDENT_NAME,
         }),
         multipart: file.size > 4 * 1024 * 1024,
-        contentType: mimeType,
+        contentType: normalizedType,
       });
+
+      const videoUrl = uploaded.url || uploaded.downloadUrl;
+      if (!videoUrl) {
+        throw new Error("Upload finished but no video URL — try again.");
+      }
 
       const res = await fetch("/api/videos/register", {
         method: "POST",
@@ -141,7 +152,7 @@ export function PracticeSession({
           songId,
           songTitle,
           studentName: STUDENT_NAME,
-          url: uploaded.url,
+          url: videoUrl,
         }),
       });
 
