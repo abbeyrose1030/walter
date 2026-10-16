@@ -1,3 +1,12 @@
+import {
+  MIC_CAPTURE_CONSTRAINTS,
+  attachBuiltInMicrophone,
+} from "@/lib/built-in-mic";
+import {
+  activateIOSPlayAndRecord,
+  prepareIOSAudioSessionForCapture,
+} from "@/lib/ios-audio-session";
+
 const VIDEO_MIME_CANDIDATES = [
   "video/mp4",
   "video/mp4;codecs=avc1",
@@ -15,20 +24,21 @@ export function pickRecorderMimeType(): string | undefined {
 }
 
 export async function openFrontCameraStream(): Promise<MediaStream> {
+  prepareIOSAudioSessionForCapture();
+
   const constraints: MediaStreamConstraints = {
     video: {
       facingMode: "user",
       width: { ideal: 1280 },
       height: { ideal: 720 },
     },
-    audio: {
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true,
-    },
+    audio: MIC_CAPTURE_CONSTRAINTS,
   };
 
-  return navigator.mediaDevices.getUserMedia(constraints);
+  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+  activateIOSPlayAndRecord();
+  await attachBuiltInMicrophone(stream);
+  return stream;
 }
 
 export class PracticeRecorder {
@@ -40,22 +50,37 @@ export class PracticeRecorder {
     return this.stream;
   }
 
-  async start(): Promise<void> {
+  /** Open camera + mic (preview during countdown). */
+  async prepare(): Promise<void> {
+    if (this.stream) return;
+    this.stream = await openFrontCameraStream();
+  }
+
+  /** Start writing video after countdown. */
+  async startRecording(): Promise<void> {
+    if (!this.stream) {
+      await this.prepare();
+    }
     if (this.recorder?.state === "recording") return;
 
-    this.stream = await openFrontCameraStream();
     this.chunks = [];
 
     const mimeType = pickRecorderMimeType();
     this.recorder = mimeType
-      ? new MediaRecorder(this.stream, { mimeType })
-      : new MediaRecorder(this.stream);
+      ? new MediaRecorder(this.stream!, { mimeType })
+      : new MediaRecorder(this.stream!);
 
     this.recorder.ondataavailable = (e) => {
       if (e.data.size > 0) this.chunks.push(e.data);
     };
 
     this.recorder.start(1000);
+  }
+
+  /** @deprecated use prepare + startRecording */
+  async start(): Promise<void> {
+    await this.prepare();
+    await this.startRecording();
   }
 
   stop(): Promise<{ blob: Blob; mimeType: string }> {

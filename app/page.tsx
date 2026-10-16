@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { INSTRUCTOR_NAME } from "@/lib/branding";
+import { APP_NAME, INSTRUCTOR_NAME, STUDENT_NAME } from "@/lib/branding";
 import { readSongsIndex } from "@/lib/songs";
 
 export const dynamic = "force-dynamic";
@@ -11,9 +11,11 @@ export default async function HomePage() {
     <main className="mx-auto min-h-dvh max-w-lg px-4 py-8">
       <div className="mb-8 text-center">
         <p className="walter-bounce text-5xl font-bold tracking-tight text-[var(--walter-coral)]">
-          WALTER
+          {APP_NAME}
         </p>
-        <p className="mt-2 text-lg font-medium">Hey Ava! 👋 Pick a song to practice.</p>
+        <p className="mt-2 text-lg font-medium">
+          Hey {STUDENT_NAME}! 👋 Pick a song to practice.
+        </p>
       </div>
 
       {songs.length === 0 ? (
@@ -40,7 +42,7 @@ export default async function HomePage() {
       )}
 
       <p className="mt-10 text-center text-xs opacity-50">
-        Add WALTER to your Home Screen from Safari&apos;s Share menu.
+        Add {APP_NAME} to your Home Screen from Safari&apos;s Share menu.
       </p>
     </main>
   );

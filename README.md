@@ -45,3 +45,26 @@ npm run dev
 1. Go to **Teacher** tab and enter the password from `lib/auth.ts` (`DEFAULT_TEACHER_PASSWORD`).
 2. Upload MP3/M4A practice tracks.
 3. Review uploaded practice videos on the same page.
+
+## Copy this app for another student
+
+Each student should get their **own folder**, **GitHub repo**, **Vercel project**, and **Blob store** (so songs and videos stay separate).
+
+1. Duplicate the project folder on your Desktop (do not copy `node_modules` or `.next`):
+
+   ```bash
+   rsync -a --exclude node_modules --exclude .next --exclude .git \
+     "/Users/administrator/Desktop/AVA APP/" \
+     "/Users/administrator/Desktop/NEW STUDENT APP/"
+   ```
+
+2. In the new folder, edit **`lib/branding.ts`**:
+   - `STUDENT_NAME` — greeting & uploads
+   - `APP_NAME` — home screen title (e.g. another silly name)
+   - `INSTRUCTOR_NAME` — your tab label (usually still Abbey)
+
+3. Optionally change **`lib/auth.ts`** → `DEFAULT_TEACHER_PASSWORD` if you want a different Abbey-tab password per student.
+
+4. In the new folder: `git init`, new GitHub repo, push, import to Vercel, add **Blob**, deploy.
+
+5. Upload that student’s tracks from the **Abbey** tab. Ava’s app is unchanged.

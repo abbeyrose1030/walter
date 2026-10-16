@@ -4,8 +4,10 @@ import { uploadPresigned } from "@vercel/blob/client";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BackingAudioPlayer } from "@/lib/backing-audio";
-import { INSTRUCTOR_NAME } from "@/lib/branding";
+import { APP_NAME, INSTRUCTOR_NAME, STUDENT_NAME } from "@/lib/branding";
 import { readApiError } from "@/lib/read-api-error";
+import { hasHeadphoneLikeOutput } from "@/lib/built-in-mic";
+import { restoreIOSPlaybackSession, setIOSPlayAndRecord } from "@/lib/ios-audio-session";
 import { PracticeRecorder } from "@/lib/recorder";
 
 type Props = {
@@ -25,6 +27,9 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
   const [countdown, setCountdown] = useState(3);
   const [message, setMessage] = useState("");
   const [loadingTrack, setLoadingTrack] = useState(true);
+  const [headphonesDetected, setHeadphonesDetected] = useState<boolean | null>(
+    null,
+  );
 
   useEffect(() => {
     const player = new BackingAudioPlayer();
@@ -63,29 +68,34 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
 
     try {
       await player.unlock();
-      await player.play(0);
+      setIOSPlayAndRecord();
+      setHeadphonesDetected(await hasHeadphoneLikeOutput());
 
-      // Start backing first so iOS keeps full volume before mic opens.
-      await new Promise((r) => setTimeout(r, 400));
+      const recorder = new PracticeRecorder();
+      recorderRef.current = recorder;
 
+      // Open mic/camera first, then start backing (iOS Safari routing workaround).
       setPhase("countdown");
       setCountdown(3);
+      await recorder.prepare();
+      attachPreview(recorder.previewStream);
+
+      await player.play(0);
+      player.setVolume(1);
 
       for (let i = 3; i >= 1; i--) {
         setCountdown(i);
         await new Promise((r) => setTimeout(r, 800));
       }
 
-      const recorder = new PracticeRecorder();
-      recorderRef.current = recorder;
-      await recorder.start();
-      attachPreview(recorder.previewStream);
+      await recorder.startRecording();
       setPhase("recording");
     } catch (err) {
       console.error(err);
       playerRef.current?.stop();
+      restoreIOSPlaybackSession();
       setMessage(
-        "Camera or mic blocked. Allow WALTER to use camera & microphone in Settings.",
+        `Camera or mic blocked. Allow ${APP_NAME} to use camera & microphone in Settings.`,
       );
       setPhase("error");
     }
@@ -103,10 +113,15 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
     try {
       const { blob, mimeType } = await recorder.stop();
       recorderRef.current = null;
+      restoreIOSPlaybackSession();
 
       const ext = mimeType.includes("mp4") ? "mp4" : "webm";
       const id = crypto.randomUUID();
-      const file = new File([blob], `ava-practice.${ext}`, { type: mimeType });
+      const file = new File(
+        [blob],
+        `${STUDENT_NAME.toLowerCase()}-practice.${ext}`,
+        { type: mimeType },
+      );
 
       const uploaded = await uploadPresigned(`videos/${id}.${ext}`, file, {
         access: "public",
@@ -114,7 +129,7 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
         clientPayload: JSON.stringify({
           songId,
           songTitle,
-          studentName: "Ava",
+          studentName: STUDENT_NAME,
         }),
         multipart: file.size > 4 * 1024 * 1024,
         contentType: mimeType,
@@ -127,7 +142,7 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
           id,
           songId,
           songTitle,
-          studentName: "Ava",
+          studentName: STUDENT_NAME,
           url: uploaded.url,
         }),
       });
@@ -147,6 +162,7 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
     playerRef.current?.stop();
     recorderRef.current?.cancel();
     attachPreview(null);
+    restoreIOSPlaybackSession();
     setPhase("ready");
   };
 
@@ -186,10 +202,21 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
         )}
       </div>
 
-      <p className="mb-4 text-center text-sm leading-snug opacity-90">
-        The song plays on your iPad. WALTER records{" "}
-        <strong>your guitar</strong> from the mic — not the speaker track.
-      </p>
+      <div className="mb-4 rounded-2xl border-2 border-[var(--walter-sky)] bg-white px-4 py-3 text-center text-sm leading-snug">
+        <p className="font-bold text-[var(--walter-ink)]">
+          🎧 Headphones on (always)
+        </p>
+        <p className="mt-1 opacity-90">
+          The song plays in your <strong>headphones</strong>. Your{" "}
+          <strong>iPad microphone</strong> records guitar — not the headphone mic,
+          and not the speaker track in the upload.
+        </p>
+        {headphonesDetected === false && (
+          <p className="mt-2 text-xs font-semibold text-[var(--walter-coral)]">
+            Headphones not detected yet — plug them in before you start.
+          </p>
+        )}
+      </div>
 
       {message && (
         <p className="mb-4 rounded-2xl bg-white px-4 py-3 text-center text-sm text-[var(--walter-coral)]">
@@ -205,7 +232,7 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
             onClick={() => void startSession()}
             className="rounded-2xl bg-[var(--walter-sky)] px-6 py-5 text-xl font-bold text-white shadow-md active:scale-[0.98] disabled:opacity-50"
           >
-            {loadingTrack ? "Loading song…" : "Start with WALTER 🎸"}
+            {loadingTrack ? "Loading song…" : `Start with ${APP_NAME} 🎸`}
           </button>
         )}
 

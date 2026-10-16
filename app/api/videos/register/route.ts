@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { STUDENT_NAME } from "@/lib/branding";
 import { isBlobStorageConfigured } from "@/lib/blob-storage";
 import { registerPracticeVideo } from "@/lib/videos";
 
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
 
   const songId = body.songId?.trim() ?? "";
   const songTitle = body.songTitle?.trim() || "Song";
-  const studentName = body.studentName?.trim() || "Ava";
+  const studentName = body.studentName?.trim() || STUDENT_NAME;
   const url = body.url?.trim() ?? "";
   const id = body.id?.trim() || crypto.randomUUID();
 

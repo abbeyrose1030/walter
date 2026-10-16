@@ -31,7 +31,7 @@ export class BackingAudioPlayer {
       if (!Ctx) throw new Error("Web Audio not supported");
       this.context = new Ctx();
       this.gain = this.context.createGain();
-      this.gain.gain.value = 0.85;
+      this.gain.gain.value = 1;
       this.gain.connect(this.context.destination);
     }
     if (this.context.state === "suspended") {

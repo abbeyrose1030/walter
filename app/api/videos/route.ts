@@ -5,6 +5,7 @@ import {
   blobNotConfiguredMessage,
   isBlobStorageConfigured,
 } from "@/lib/blob-storage";
+import { STUDENT_NAME } from "@/lib/branding";
 import { appendVideo, readVideosIndex } from "@/lib/videos";
 
 export const runtime = "nodejs";
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
   const file = form.get("video");
   const songId = String(form.get("songId") || "");
   const songTitle = String(form.get("songTitle") || "Song");
-  const studentName = String(form.get("studentName") || "Ava");
+  const studentName = String(form.get("studentName") || STUDENT_NAME);
 
   if (!(file instanceof File) || !songId) {
     return NextResponse.json(

@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fredoka } from "next/font/google";
 import { WalterAppChrome } from "@/components/WalterAppChrome";
-import { INSTRUCTOR_NAME } from "@/lib/branding";
+import { APP_NAME, INSTRUCTOR_NAME } from "@/lib/branding";
 import "./globals.css";
 
 const fredoka = Fredoka({
@@ -11,13 +11,13 @@ const fredoka = Fredoka({
 });
 
 export const metadata: Metadata = {
-  title: "WALTER",
-  description: `Practice guitar with WALTER — play along and record for ${INSTRUCTOR_NAME}!`,
-  applicationName: "WALTER",
+  title: APP_NAME,
+  description: `Practice guitar with ${APP_NAME} — play along and record for ${INSTRUCTOR_NAME}!`,
+  applicationName: APP_NAME,
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "WALTER",
+    title: APP_NAME,
   },
   formatDetection: {
     telephone: false,
@@ -40,7 +40,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body className={`${fredoka.className} antialiased`}>

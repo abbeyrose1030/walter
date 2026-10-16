@@ -2,7 +2,7 @@
 
 import { uploadPresigned } from "@vercel/blob/client";
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { INSTRUCTOR_NAME } from "@/lib/branding";
+import { APP_NAME, INSTRUCTOR_NAME, STUDENT_NAME } from "@/lib/branding";
 import { readApiError } from "@/lib/read-api-error";
 
 type Song = { id: string; title: string; uploadedAt: string };
@@ -130,7 +130,7 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
       }
 
       e.currentTarget.reset();
-      setStatus("Song added for Ava!");
+      setStatus(`Song added for ${STUDENT_NAME}!`);
       await load();
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Upload failed");
@@ -155,7 +155,9 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
     <div className="mx-auto max-w-lg px-4 py-8">
       <div className="mb-6 text-center">
         <p className="text-3xl font-bold text-[var(--walter-grape)]">{INSTRUCTOR_NAME}</p>
-        <p className="mt-1 text-sm opacity-80">Upload songs & watch Ava&apos;s videos.</p>
+        <p className="mt-1 text-sm opacity-80">
+          Upload songs & watch {STUDENT_NAME}&apos;s videos.
+        </p>
       </div>
 
       {!teacherUnlocked ? (
@@ -214,7 +216,7 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
             disabled={uploading}
             className="rounded-xl bg-[var(--walter-sky)] px-4 py-2 font-semibold text-white disabled:opacity-50"
           >
-            {uploading ? "Uploading…" : "Upload for Ava"}
+            {uploading ? "Uploading…" : `Upload for ${STUDENT_NAME}`}
           </button>
         </form>
       )}
@@ -250,7 +252,9 @@ export function TeacherDashboard({ initialKey = "" }: Props) {
         <section>
           <h2 className="mb-2 font-bold">Practice videos ({videos.length})</h2>
           {videos.length === 0 ? (
-            <p className="text-sm opacity-70">No videos yet — tell Ava to hit WALTER!</p>
+            <p className="text-sm opacity-70">
+              No videos yet — tell {STUDENT_NAME} to hit {APP_NAME}!
+            </p>
           ) : (
             <ul className="flex flex-col gap-6">
               {videos.map((v) => (
