@@ -1,7 +1,4 @@
-import {
-  MIC_CAPTURE_CONSTRAINTS,
-  attachBuiltInMicrophone,
-} from "@/lib/built-in-mic";
+import { openPracticeMediaStream } from "@/lib/built-in-mic";
 import {
   activateIOSPlayAndRecord,
   prepareIOSAudioSessionForCapture,
@@ -23,21 +20,12 @@ export function pickRecorderMimeType(): string | undefined {
   return undefined;
 }
 
-export async function openFrontCameraStream(): Promise<MediaStream> {
+export async function openFrontCameraStream(
+  micDeviceId: string,
+): Promise<MediaStream> {
   prepareIOSAudioSessionForCapture();
-
-  const constraints: MediaStreamConstraints = {
-    video: {
-      facingMode: "user",
-      width: { ideal: 1280 },
-      height: { ideal: 720 },
-    },
-    audio: MIC_CAPTURE_CONSTRAINTS,
-  };
-
-  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+  const stream = await openPracticeMediaStream(micDeviceId);
   activateIOSPlayAndRecord();
-  await attachBuiltInMicrophone(stream);
   return stream;
 }
 
@@ -51,15 +39,15 @@ export class PracticeRecorder {
   }
 
   /** Open camera + mic (preview during countdown). */
-  async prepare(): Promise<void> {
+  async prepare(micDeviceId: string): Promise<void> {
     if (this.stream) return;
-    this.stream = await openFrontCameraStream();
+    this.stream = await openFrontCameraStream(micDeviceId);
   }
 
   /** Start writing video after countdown. */
-  async startRecording(): Promise<void> {
+  async startRecording(micDeviceId: string): Promise<void> {
     if (!this.stream) {
-      await this.prepare();
+      await this.prepare(micDeviceId);
     }
     if (this.recorder?.state === "recording") return;
 
@@ -78,9 +66,9 @@ export class PracticeRecorder {
   }
 
   /** @deprecated use prepare + startRecording */
-  async start(): Promise<void> {
-    await this.prepare();
-    await this.startRecording();
+  async start(micDeviceId: string): Promise<void> {
+    await this.prepare(micDeviceId);
+    await this.startRecording(micDeviceId);
   }
 
   stop(): Promise<{ blob: Blob; mimeType: string }> {

@@ -6,7 +6,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { BackingAudioPlayer } from "@/lib/backing-audio";
 import { APP_NAME, INSTRUCTOR_NAME, STUDENT_NAME } from "@/lib/branding";
 import { readApiError } from "@/lib/read-api-error";
-import { hasHeadphoneLikeOutput } from "@/lib/built-in-mic";
+import {
+  AudioDevicePicker,
+  type AudioDeviceSelection,
+} from "@/components/AudioDevicePicker";
+import { getActiveMicrophoneLabel } from "@/lib/built-in-mic";
 import { restoreIOSPlaybackSession, setIOSPlayAndRecord } from "@/lib/ios-audio-session";
 import { PracticeRecorder } from "@/lib/recorder";
 
@@ -27,9 +31,9 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
   const [countdown, setCountdown] = useState(3);
   const [message, setMessage] = useState("");
   const [loadingTrack, setLoadingTrack] = useState(true);
-  const [headphonesDetected, setHeadphonesDetected] = useState<boolean | null>(
-    null,
-  );
+  const [micLabel, setMicLabel] = useState("");
+  const [audioSelection, setAudioSelection] =
+    useState<AudioDeviceSelection | null>(null);
 
   useEffect(() => {
     const player = new BackingAudioPlayer();
@@ -66,19 +70,24 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
     const player = playerRef.current;
     if (!player) return;
 
+    if (!audioSelection?.inputId || !audioSelection.outputId) {
+      setMessage("Tap “Choose headphones & mic” and pick both devices first.");
+      return;
+    }
+
     try {
+      player.setOutputDevice(audioSelection.outputId);
       await player.unlock();
       setIOSPlayAndRecord();
-      setHeadphonesDetected(await hasHeadphoneLikeOutput());
 
       const recorder = new PracticeRecorder();
       recorderRef.current = recorder;
 
-      // Open mic/camera first, then start backing (iOS Safari routing workaround).
       setPhase("countdown");
       setCountdown(3);
-      await recorder.prepare();
+      await recorder.prepare(audioSelection.inputId);
       attachPreview(recorder.previewStream);
+      setMicLabel(getActiveMicrophoneLabel(recorder.previewStream));
 
       await player.play(0);
       player.setVolume(1);
@@ -88,7 +97,7 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
         await new Promise((r) => setTimeout(r, 800));
       }
 
-      await recorder.startRecording();
+      await recorder.startRecording(audioSelection.inputId);
       setPhase("recording");
     } catch (err) {
       console.error(err);
@@ -194,29 +203,29 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
             </span>
           </div>
         )}
-        {phase === "recording" && (
-          <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-[var(--walter-coral)] px-3 py-1 text-sm font-bold text-white">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
-            REC
+        {(phase === "recording" || phase === "countdown") && (
+          <div className="absolute left-3 top-3 flex flex-col items-start gap-1">
+            {phase === "recording" && (
+              <div className="flex items-center gap-2 rounded-full bg-[var(--walter-coral)] px-3 py-1 text-sm font-bold text-white">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
+                REC
+              </div>
+            )}
+            {micLabel && (
+              <div className="max-w-[12rem] rounded-lg bg-black/55 px-2 py-1 text-[10px] font-medium leading-tight text-white">
+                Mic: {micLabel}
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      <div className="mb-4 rounded-2xl border-2 border-[var(--walter-sky)] bg-white px-4 py-3 text-center text-sm leading-snug">
-        <p className="font-bold text-[var(--walter-ink)]">
-          🎧 Headphones on (always)
-        </p>
-        <p className="mt-1 opacity-90">
-          The song plays in your <strong>headphones</strong>. Your{" "}
-          <strong>iPad microphone</strong> records guitar — not the headphone mic,
-          and not the speaker track in the upload.
-        </p>
-        {headphonesDetected === false && (
-          <p className="mt-2 text-xs font-semibold text-[var(--walter-coral)]">
-            Headphones not detected yet — plug them in before you start.
-          </p>
-        )}
-      </div>
+      {phase === "ready" && (
+        <AudioDevicePicker
+          disabled={loadingTrack}
+          onReady={(selection) => setAudioSelection(selection)}
+        />
+      )}
 
       {message && (
         <p className="mb-4 rounded-2xl bg-white px-4 py-3 text-center text-sm text-[var(--walter-coral)]">
@@ -228,7 +237,7 @@ export function PracticeSession({ songId, songTitle, trackUrl }: Props) {
         {phase === "ready" && (
           <button
             type="button"
-            disabled={loadingTrack}
+            disabled={loadingTrack || !audioSelection}
             onClick={() => void startSession()}
             className="rounded-2xl bg-[var(--walter-sky)] px-6 py-5 text-xl font-bold text-white shadow-md active:scale-[0.98] disabled:opacity-50"
           >
