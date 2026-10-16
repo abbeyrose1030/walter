@@ -106,10 +106,10 @@ export function PracticeSession({
     if (!recorder) return;
 
     setPhase("uploading");
-    attachPreview(null);
 
     try {
       const { blob, mimeType } = await recorder.stop();
+      attachPreview(null);
       recorderRef.current = null;
       restoreIOSPlaybackSession();
 
