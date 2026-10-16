@@ -45,9 +45,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ video });
   } catch (err) {
     console.error("Video register failed:", err);
-    return NextResponse.json(
-      { error: "Could not save your video. Try again." },
-      { status: 500 },
-    );
+    const detail =
+      err instanceof Error ? err.message : "Could not save your video.";
+    return NextResponse.json({ error: detail }, { status: 500 });
   }
 }

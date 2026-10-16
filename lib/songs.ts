@@ -41,6 +41,7 @@ export async function writeSongsIndex(songs: Song[]): Promise<void> {
   await put(SONGS_INDEX, JSON.stringify(withoutLegacyDemoTrack(songs)), {
     access: "public",
     addRandomSuffix: false,
+    allowOverwrite: true,
     contentType: "application/json",
   });
 }

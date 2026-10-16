@@ -35,6 +35,7 @@ export async function appendVideo(entry: PracticeVideo): Promise<void> {
   await put(VIDEOS_INDEX, JSON.stringify(videos), {
     access: "public",
     addRandomSuffix: false,
+    allowOverwrite: true,
     contentType: "application/json",
   });
 }
